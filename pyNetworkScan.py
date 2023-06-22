@@ -62,5 +62,5 @@ for hostnode in scanned_hosts.keys():
 
 mygraph.layout("neato")
 
-mygraph.draw("blah.svg")
+mygraph.draw("networkMap.svg")
 
