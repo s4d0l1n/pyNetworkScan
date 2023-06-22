@@ -30,7 +30,7 @@ for x in scan_dict['nmaprun']['host']:
 
 pprint.pprint(scanned_hosts.keys())
 
-mygraph = pgv.AGraph(overlap=False, splines="curved")
+mygraph = pgv.AGraph(overlap=False, splines="curved" )
 print(list(scanned_hosts.keys()))
 for t in scanned_hosts.keys():
     prevhop = []
@@ -42,10 +42,9 @@ for t in scanned_hosts.keys():
                 
                 if type(keyb)!=bool:
                     prevhop.append(keyb)
-    try:
-        scanned_hosts[t]["parentIP"] =   prevhop.pop(-2)
-    except:
-        scanned_hosts[t]["parentIP"] =   prevhop.pop()
+
+    scanned_hosts[t]["parentIP"] =   prevhop
+
     pprint.pprint(scanned_hosts[t])           
                 
             
@@ -53,14 +52,24 @@ for t in scanned_hosts.keys():
 
 for hostnode in scanned_hosts.keys():
     parentnode = scanned_hosts[hostnode]["parentIP"]
-    for value in scanned_hosts[hostnode]['theports']:
-        pprint.pprint(value)
-
+    print(f"host: {hostnode}")
+    
+    # for value in scanned_hosts[hostnode]['theports']:
+    #     pprint.pprint(value)
+    for n in parentnode:
+        print(f"BLAH: {n}")
+    if len(parentnode) > 0 : parentnode.insert(-1,hostnode[:hostnode.rfind(".")])
+    edges = list(zip(parentnode, parentnode[1:]))
+    print (edges)
+    mygraph.add_edge(hostnode, hostnode[:hostnode.rfind(".")], color="red", dir="forward" , arrowType="normal")
     mygraph.add_node(hostnode, label=f"IP: {hostnode} \n Ports: {scanned_hosts[hostnode]['theports']}", shape='rectangle')
-    mygraph.add_edge(hostnode,parentnode)
+    mygraph.add_edges_from(edges)
+    
     #mygraph.add_edge(hostnode,parentnode)
 
 mygraph.layout("neato")
 
-mygraph.draw("networkMap.svg")
+mygraph.draw("blah.svg")
 
+
+    
