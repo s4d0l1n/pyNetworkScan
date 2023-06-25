@@ -1,75 +1,73 @@
-
 import xmltodict
 import pprint
 from scapy.layers.inet import traceroute
 from collections import OrderedDict
 import pygraphviz as pgv
 
-with open('outputscan.xml') as file:
-    my_xml = file.read()
-    
-scan_dict = xmltodict.parse(my_xml)
+
+def read_xml(file_name):
+    with open(file_name) as file:
+        return xmltodict.parse(file.read())
 
 
+def get_scanned_hosts(scan_dict):
+    scanned_hosts = {}
 
-scanned_hosts = {}
-for x in scan_dict['nmaprun']['host']:
- 
-    scanned_hosts[str(x['address']['@addr'])] = {"theports" : "", "parentIP" : ""}
-    if "port" in x['ports']:
-        open_ports = {}
-        open_ports = x['ports']['port']
-        ports= {}
+    for host in scan_dict['nmaprun']['host']:
+        address = host['address']['@addr'] if type(host['address']) is not list else host['address'][0]['@addr']
+        ports = host['ports']['port'] if "port" in host['ports'] else []
 
-        for y in x['ports']['port']:
+        open_ports = get_open_ports(ports)
 
-            ports[str(y['@portid'])] = str(y['service']['@name'])
+        scanned_hosts[address] = {"theports": open_ports, "parentIP": ""}
 
-        scanned_hosts[str(x['address']['@addr'])]['theports'] =  ports
+    return scanned_hosts
 
 
-pprint.pprint(scanned_hosts.keys())
+def get_open_ports(ports):
+    open_ports = {}
 
-mygraph = pgv.AGraph(overlap=False, splines="curved" )
-print(list(scanned_hosts.keys()))
-for t in scanned_hosts.keys():
-    prevhop = []
-    result, unans = traceroute(t, maxttl=6, verbose=None)
-    for key in result.get_trace(): #root
-        for keya in result.get_trace()[key]: 
-            
-            for keyb in result.get_trace()[key][keya]:
-                
-                if type(keyb)!=bool:
-                    prevhop.append(keyb)
+    if isinstance(ports, list):
+        for port in ports:
+            open_ports[port.get('@portid')] = port.get('service').get('@name')
+    else:
+        open_ports[ports['@portid']] = ports['service']['@name']
 
-    scanned_hosts[t]["parentIP"] =   prevhop
-
-    pprint.pprint(scanned_hosts[t])           
-                
-            
+    return list(open_ports.items())
 
 
-for hostnode in scanned_hosts.keys():
-    parentnode = scanned_hosts[hostnode]["parentIP"]
-    print(f"host: {hostnode}")
-    
-    # for value in scanned_hosts[hostnode]['theports']:
-    #     pprint.pprint(value)
-    for n in parentnode:
-        print(f"BLAH: {n}")
-    if len(parentnode) > 0 : parentnode.insert(-1,hostnode[:hostnode.rfind(".")])
-    edges = list(zip(parentnode, parentnode[1:]))
-    print (edges)
-    mygraph.add_edge(hostnode, hostnode[:hostnode.rfind(".")], color="red", dir="forward" , arrowType="normal")
-    mygraph.add_node(hostnode, label=f"IP: {hostnode} \n Ports: {scanned_hosts[hostnode]['theports']}", shape='rectangle')
-    mygraph.add_edges_from(edges)
-    
-    #mygraph.add_edge(hostnode,parentnode)
-
-mygraph.layout("neato")
-
-mygraph.draw("blah.svg")
+def perform_traceroute(scanned_hosts):
+    for host in scanned_hosts.keys():
+        result, unans = traceroute(host, maxttl=6, verbose=None)
+        prevhop = [
+            keyb
+            for trace in result.get_trace().values()
+            for sub_trace in trace.values()
+            for keyb in sub_trace if type(keyb) != bool
+        ]
+        scanned_hosts[host]["parentIP"] = prevhop
 
 
-    
+def create_network_graph(scanned_hosts):
+    graph = pgv.AGraph(overlap=False, splines="curved")
+
+    for host, data in scanned_hosts.items():
+        parent_node = data["parentIP"]
+        if len(parent_node) > 0 : parent_node.insert(-1,host[:host.rfind(".")])
+        edges = list(zip(parent_node, parent_node[1:]))
+
+        graph.add_edge(host, host[:host.rfind(".")], color="red", dir="forward", arrowType="normal")
+        graph.add_node(host, label=f"IP: {host} \n Ports: {data['theports']}", shape='rectangle')
+        graph.add_edges_from(edges)
+
+    graph.layout("neato")
+    graph.draw("graph.svg")
+
+
+if __name__ == '__main__':
+    scan_dict = read_xml('outputscan.xml')
+    scanned_hosts = get_scanned_hosts(scan_dict)
+    pprint.pprint(scanned_hosts)
+
+    perform_traceroute(scanned_hosts)
+    create_network_graph(scanned_hosts)
