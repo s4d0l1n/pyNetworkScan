@@ -10,7 +10,7 @@ def read_xml(file_name):
         return xmltodict.parse(file.read())
 
 
-def get_scanned_hosts(scan_dict):
+def get_scanned_hosts(scan_dict, net=""):
     scanned_hosts = {}
 
     for host in scan_dict['nmaprun']['host']:
@@ -48,7 +48,7 @@ def perform_traceroute(scanned_hosts):
         scanned_hosts[host]["parentIP"] = prevhop
 
 
-def create_network_graph(scanned_hosts):
+def create_network_graph(scanned_hosts, filename="all"):
     graph = pgv.AGraph(overlap=False, splines="curved")
 
     for host, data in scanned_hosts.items():
@@ -61,13 +61,21 @@ def create_network_graph(scanned_hosts):
         graph.add_edges_from(edges)
 
     graph.layout("neato")
-    graph.draw("graph.svg")
+    graph.draw(f"graph_{filename}.svg")
 
 
 if __name__ == '__main__':
     scan_dict = read_xml('outputscan.xml')
     scanned_hosts = get_scanned_hosts(scan_dict)
-    pprint.pprint(scanned_hosts)
-
+    uniqueNets = set([ips[:ips.rfind(".")] for ips in scanned_hosts])
     perform_traceroute(scanned_hosts)
+    for un in uniqueNets:
+        print (un)
+        create_network_graph({k:v for (k,v) in scanned_hosts.items() if un in k},un)
+    
+
+
+    
+
+    #perform_traceroute(scanned_hosts)
     create_network_graph(scanned_hosts)
