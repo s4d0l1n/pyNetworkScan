@@ -3,7 +3,7 @@ import pprint
 from scapy.layers.inet import traceroute
 from collections import OrderedDict
 import pygraphviz as pgv
-
+import socket
 
 def read_xml(file_name):
     with open(file_name) as file:
@@ -52,13 +52,25 @@ def create_network_graph(scanned_hosts, filename="all"):
     graph = pgv.AGraph(overlap=False, splines="curved")
 
     for host, data in scanned_hosts.items():
-        parent_node = data["parentIP"]
-        if len(parent_node) > 0 : parent_node.insert(-1,host[:host.rfind(".")])
+        parent_node = list(data["parentIP"])
+        lastHop = parent_node[-1]
+        # print("*********************************************************************************")
+        # lastHop = lastHop[:lastHop.rfind(".")] + ".0"
+        # print(lastHop[:lastHop.rfind(".")] + ".0")
+        # print("*********************************************************************************")
+        # if len(parent_node) > 0 : parent_node.insert(-1,lastHop) 
+        # else: 
+        #     parent_node.insert(0,lastHop) 
+        pprint.pprint(parent_node)
         edges = list(zip(parent_node, parent_node[1:]))
+        print("edgestart")
+        pprint.pprint(edges)
+        print("edgeend")
 
-        graph.add_edge(host, host[:host.rfind(".")], color="red", dir="forward", arrowType="normal")
+        #graph.add_edge(host, host[:host.rfind(".")], color="red", dir="forward", arrowType="normal")
         graph.add_node(host, label=f"IP: {host} \n Ports: {data['theports']}", shape='rectangle')
-        graph.add_edges_from(edges)
+        graph.add_edges_from(edges, color="red", dir="forward", arrowType="normal")
+
 
     graph.layout("neato")
     graph.draw(f"graph_{filename}.svg")
@@ -66,6 +78,7 @@ def create_network_graph(scanned_hosts, filename="all"):
 
 if __name__ == '__main__':
     scan_dict = read_xml('outputscan.xml')
+    
     scanned_hosts = get_scanned_hosts(scan_dict)
     uniqueNets = set([ips[:ips.rfind(".")] for ips in scanned_hosts])
     perform_traceroute(scanned_hosts)
@@ -77,5 +90,5 @@ if __name__ == '__main__':
 
     
 
-    #perform_traceroute(scanned_hosts)
+    
     create_network_graph(scanned_hosts)
