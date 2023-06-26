@@ -39,13 +39,17 @@ def get_open_ports(ports):
 def perform_traceroute(scanned_hosts):
     for host in scanned_hosts.keys():
         result, unans = traceroute(host, maxttl=6, verbose=None)
-        prevhop = [
-            keyb
-            for trace in result.get_trace().values()
-            for sub_trace in trace.values()
-            for keyb in sub_trace if type(keyb) != bool
-        ]
-        scanned_hosts[host]["parentIP"] = prevhop
+        print("ASFKJASLDKFJASDLKFJZSDLKFJSZDLK:JASDLKJASDLJKASDJKF")
+        unans.show()
+        print("ASJFDASFLKAJSDFLKASDFLKASDALSDKFJASDLKFJASDLKFJ")
+        if len(unans) > 0:
+            prevhop = [
+                keyb
+                for trace in result.get_trace().values()
+                for sub_trace in trace.values()
+                for keyb in sub_trace if type(keyb) != bool
+                ]
+            scanned_hosts[host]["parentIP"] = prevhop
 
 
 def create_network_graph(scanned_hosts, filename="all"):
