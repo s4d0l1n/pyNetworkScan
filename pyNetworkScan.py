@@ -42,6 +42,7 @@ def perform_traceroute(scanned_hosts):
         print("ASFKJASLDKFJASDLKFJZSDLKFJSZDLK:JASDLKJASDLJKASDJKF")
         unans.show()
         print("ASJFDASFLKAJSDFLKASDFLKASDALSDKFJASDLKFJASDLKFJ")
+        prevhop = [host]
         if len(unans) > 0:
             prevhop = [
                 keyb
@@ -49,7 +50,8 @@ def perform_traceroute(scanned_hosts):
                 for sub_trace in trace.values()
                 for keyb in sub_trace if type(keyb) != bool
                 ]
-            scanned_hosts[host]["parentIP"] = prevhop
+            pprint.pprint(prevhop)
+        scanned_hosts[host]["parentIP"] = prevhop
 
 
 def create_network_graph(scanned_hosts, filename="all"):
