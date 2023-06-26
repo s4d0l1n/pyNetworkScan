@@ -42,15 +42,14 @@ def perform_traceroute(scanned_hosts):
         print("ASFKJASLDKFJASDLKFJZSDLKFJSZDLK:JASDLKJASDLJKASDJKF")
         unans.show()
         print("ASJFDASFLKAJSDFLKASDFLKASDALSDKFJASDLKFJASDLKFJ")
-        prevhop = [host]
-        if len(unans) > 0:
-            prevhop = [
-                keyb
-                for trace in result.get_trace().values()
-                for sub_trace in trace.values()
-                for keyb in sub_trace if type(keyb) != bool
-                ]
-            pprint.pprint(prevhop)
+        #prevhop = [host]
+        prevhop = [
+            keyb
+            for trace in result.get_trace().values()
+            for sub_trace in trace.values()
+            for keyb in sub_trace if type(keyb) != bool
+            ]
+        pprint.pprint(prevhop)
         scanned_hosts[host]["parentIP"] = prevhop
 
 
