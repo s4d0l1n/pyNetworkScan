@@ -42,17 +42,26 @@ def get_open_ports(ports):
         open_ports[ports['@portid']] = ports['service']['@name']
 
     return open_ports.items()
-
+def printPacket():
+    print("fuck")
 
 def perform_traceroute(scanned_hosts):
     for host in scanned_hosts.keys():
         result, unans = traceroute(host, maxttl=6, verbose=True)
+        
         hops=[]
         
-        print(f"LENGTH OF ANASERED PACKETS {len(unans)}")
-        pprint.pprint(result.get_trace().items())
+       
+        
+        
+
+
+        
+        #print(myresult)
+
+        
         for trace in result.get_trace().values():
-            
+            addit = True    
             
             for sub_trace in trace.values():
                     
@@ -67,8 +76,13 @@ def perform_traceroute(scanned_hosts):
                     print(f"last hop is: {lastHop}")
                     if len(hops) > 1 : hops.insert(-1, lastHop)
                     hops.insert(0, thisip)
-                    scanned_hosts[host]["parentIP"] = list(dict.fromkeys(hops))
-                    allhops.append(list(dict.fromkeys(hops)))
+                    
+                    for g,h in result:
+                        if h.sprintf("%TCP.flags%") == "SA":
+                            addit = False
+                    if addit:
+                        scanned_hosts[host]["parentIP"] = list(dict.fromkeys(hops))
+                        allhops.append(list(dict.fromkeys(hops)))
                     print(scanned_hosts[host]["parentIP"])
                     print(f"added path: {hops}")
 
