@@ -96,32 +96,28 @@ def perform_traceroute(scanned_hosts):
         # #pprint.pprint(prevhop)
         # scanned_hosts[host]["parentIP"] = prevhop
 
+        
+    
 
 def create_network_graph(scanned_hosts, filename="all"):
-    graph = pgv.AGraph(overlap=False, splines="curved")
+    graph = pgv.AGraph(overlap=False, splines="curved", directed=True, rankdir="LR")
 
     for host, data in scanned_hosts.items():
         parent_node = list(data["parentIP"])
-        # lastHop = parent_node[-1]
-        
-        # print("*********************************************************************************")
-        # lastHop = lastHop[:lastHop.rfind(".")] + ".0"
-        # # print(lastHop[:lastHop.rfind(".")] + ".0")
-        # print(lastHop)
-        #print("*********************************************************************************")
-        # if len(parent_node) > 1 : parent_node.insert(-1,lastHop) 
-        #else: 
-        #     parent_node.insert(0,lastHop) 
-        #parent_node.insert(-1,lastHop)
-        #pprint.pprint(parent_node)
-        #edges = list(zip(parent_node, parent_node[1:]))
 
 
-        #graph.add_edge(host, host[:host.rfind(".")], color="red", dir="forward", arrowType="normal")
         formatedPorts = { "<BR />" +p + ": " + v for p,v in data['theports']} 
         graph.add_node(host, label=f"<IP: {host} \n Ports: {formatedPorts}>", shape='rectangle')
         graph.add_path(parent_node)
         #graph.add_edges_from(edges, color="red", dir="forward", arrowType="normal")
+        nlist = parent_node
+        if len(nlist) > 0:
+            fromv = nlist.pop(0)
+            while len(nlist) > 0:
+                tov = nlist.pop(0)
+                graph.add_edge(fromv, tov, penwidth=5)
+                fromv = tov
+        
 
 
     graph.layout("neato")
