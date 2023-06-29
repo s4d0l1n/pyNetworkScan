@@ -108,14 +108,14 @@ def create_network_graph(scanned_hosts, filename="all"):
 
         formatedPorts = { "<BR />" +p + ": " + v for p,v in data['theports']} 
         graph.add_node(host, label=f"<IP: {host} \n Ports: {formatedPorts}>", shape='rectangle')
-        graph.add_path(parent_node)
+        #graph.add_path(parent_node)
         #graph.add_edges_from(edges, color="red", dir="forward", arrowType="normal")
         nlist = parent_node
-        if len(nlist) > 0:
+        if len(nlist) > 1:
             fromv = nlist.pop(0)
             while len(nlist) > 0:
                 tov = nlist.pop(0)
-                graph.add_edge(fromv, tov, penwidth=5)
+                graph.add_edge(fromv, tov, color="red", penwidth=len(nlist)+1)
                 fromv = tov
         
 
