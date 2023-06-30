@@ -4,6 +4,8 @@ from scapy.layers.inet import traceroute
 from collections import OrderedDict
 import pygraphviz as pgv
 import socket
+import numpy as np
+ 
 
 thisip=""
 allhops = []
@@ -96,28 +98,77 @@ def perform_traceroute(scanned_hosts):
         # #pprint.pprint(prevhop)
         # scanned_hosts[host]["parentIP"] = prevhop
 
-        
+def get_random_hex_color():
+    color = list(np.random.choice(range(40,225),size=3))
+    return '#{:02x}{:02x}{:02x}'.format(color[0], color[1], color[2])
+    
     
 
 def create_network_graph(scanned_hosts, filename="all"):
-    graph = pgv.AGraph(overlap=False, splines="curved", directed=True, rankdir="LR")
+    graph = pgv.AGraph(overlap=False, splines="curved", directed=True, rankdir="LR", strict=False)
+    n = 0
 
     for host, data in scanned_hosts.items():
         parent_node = list(data["parentIP"])
+        maxHops = len(data["parentIP"])
+        #print(f"The MAxIMUM VALUE IS AJSDLKJASLFJDSALJF LAK::::::::::: {maxHops} for the host {host}")
+        
 
 
         formatedPorts = { "<BR />" +p + ": " + v for p,v in data['theports']} 
         graph.add_node(host, label=f"<IP: {host} \n Ports: {formatedPorts}>", shape='rectangle')
         #graph.add_path(parent_node)
-        #graph.add_edges_from(edges, color="red", dir="forward", arrowType="normal")
+        #graph.add_edges_from(edges, color="red", dir="forward", arrowType="normal")lastHop[:lastHop.rfind(".")] 
         nlist = parent_node
+        path_color = get_random_hex_color()
         if len(nlist) > 1:
             fromv = nlist.pop(0)
+            
             while len(nlist) > 0:
                 tov = nlist.pop(0)
-                graph.add_edge(fromv, tov, color="red", penwidth=len(nlist)+1)
+                # lastHop[:lastHop.rfind(".")]
+                
+                if len(graph.in_edges((fromv,tov))) < 6:
+                    if graph.has_edge(fromv,tov, key=f"{fromv}_{tov}") == False:
+                        
+                        graph.add_edge(fromv, tov, key=f"{fromv}_{tov}_{host}", color=f"{path_color}")
+                else:
+                    if graph.has_edge(fromv, tov):
+                        graph.remove_edges_from(graph.in_edges(tov))
+                        graph.add_edge(fromv, tov, key=f"{fromv}_{tov}", penwidth="3", color=f"{path_color}")
+                # graph.remove_edges_from(graph.in_edges("172.16.30.1"))   
+                # if len(graph.edges(((fromv, tov, f"{fromv}{tov}{len(nlist)}")))) > 5:
+                #     print("REMoVing AEJALKDFJALSKJFLAK WEJFEDGE EDG EEDGEEDGDEGEGEGEGEGED")
+                #     try:
+                #         graph.remove_edge((f"{fromv}{tov}{host}{len(nlist)}"))
+                #     finally:
+                #         if len(graph.edges((fromv, tov, f"{fromv}{tov}{host}{len(nlist)}a"))) < 1:
+                #             graph.add_edge(fromv, tov, f"{fromv}{tov}{host}{len(nlist)}a", color="red", penwidth="3") 
+                    # else:
+                    #     graph.remove_edges_from((fromv, tov, f"{host}a"))
+                    #     graph.add_edge(fromv, tov, f"{host}a", color="red", penwidth="3")
+                        
+                
+
+
+                #print(f"NUMBER OF EDGES GOING TO {fromv} to {tov} is {len(graph.edges((fromv, tov)))} !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
                 fromv = tov
+    theset = {}
+    for node in graph.nodes():
+        print(len(graph.in_edges(node,keys=True)))
+        # if len(graph.in_edges(node)) > 6:
+            # graph.remove_edges_from(graph.in_edges(node))
+        # for edge in graph.in_edges(node):
+        #     # theset[host]= edge
+        #     print(len(edge))
+
+        #     print("ASDFJADSKLFJADSLFKJZSDLKFJASDLKFJASDLKFJASDLKFJASDLKFJASDLKFJASDLKFJASDLKFJASDLKJFASDLKFASDLKJFASDLKJASDLKJFASDLKJ")
+            # graph.delete_edge(edge, key=host)
+    # pprint.pprint(sorted(theset))
         
+    # graph.add_edges_from(theset, color=f"{path_color}")
+    # graph.remove_edges_from(graph.in_edges("172.16.30.1"))            
+    print("donewiththathost")
 
 
     graph.layout("neato")
@@ -131,7 +182,7 @@ if __name__ == '__main__':
     uniqueNets = set([ips[:ips.rfind(".")] for ips in scanned_hosts])
     perform_traceroute(scanned_hosts)
     for un in uniqueNets:
-        print (un)
+        #print (un)
         create_network_graph({k:v for (k,v) in scanned_hosts.items() if un in k},un)
     
 
@@ -140,4 +191,4 @@ if __name__ == '__main__':
 
     
     create_network_graph(scanned_hosts)
-    pprint.pprint(allhops)
+    #pprint.pprint(allhops)
