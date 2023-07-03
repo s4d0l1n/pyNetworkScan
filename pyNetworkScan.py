@@ -1,14 +1,15 @@
 import xmltodict
 import pprint
-from scapy.layers.inet import traceroute
+from scapy.all import *
+from scapy.layers.inet import IP, ICMP
 from collections import OrderedDict
 import pygraphviz as pgv
 import socket
 import numpy as np
- 
 
 thisip=""
 allhops = []
+hostsAndHops = dict()
 def read_xml(file_name):
     with open(file_name) as file:
         return xmltodict.parse(file.read())
@@ -27,7 +28,7 @@ def get_scanned_hosts(scan_dict, net=""):
         address = host['address']['@addr'] if type(host['address']) is not list else host['address'][0]['@addr']
         ports = host['ports']['port'] if "port" in host['ports'] else []
 
-        open_ports = get_open_ports(ports)
+        open_ports = list(get_open_ports(ports))
 
         scanned_hosts[address] = {"theports": open_ports, "parentIP": [thisip]}
 
@@ -44,59 +45,23 @@ def get_open_ports(ports):
         open_ports[ports['@portid']] = ports['service']['@name']
 
     return open_ports.items()
-def printPacket():
-    print("fuck")
+
 
 def perform_traceroute(scanned_hosts):
     for host in scanned_hosts.keys():
-        result, unans = traceroute(host, maxttl=6, verbose=True)
-        
+        print(f"tracerouting {host}:")
+        ans, unans = sr(IP(dst=host, ttl=(1,6))/ICMP(), timeout=5, verbose=0, retry=2)
         hops=[]
+        ans.summary( lambda s, r : hops.append(str(r.sprintf("%IP.src%"))))
+        hops = list(dict.fromkeys(hops))
+        hops.insert(0, thisip)
+        hops.insert(-1, host[:host.rfind(".")]+ ".0")
         
-       
+        scanned_hosts[host]["parentIP"] = hops
+        hostsAndHops[host] = hops
+        pprint.pprint(scanned_hosts[host])
+    pprint.pprint(hostsAndHops)
         
-        
-
-
-        
-        #print(myresult)
-
-        
-        for trace in result.get_trace().values():
-            addit = True    
-            
-            for sub_trace in trace.values():
-                    
-                r = list(sub_trace)
-                #s, t = zip(*r)
-                hops.append(str(r[0]))
-                print(f"the hops: {hops}")
-
-                if str(r[1]) == "True":
-                    lastHop = hops[-1]
-                    lastHop = lastHop[:lastHop.rfind(".")] + ".1"
-                    print(f"last hop is: {lastHop}")
-                    if len(hops) > 1 : hops.insert(-1, lastHop)
-                    hops.insert(0, thisip)
-                    
-                    for g,h in result:
-                        if h.sprintf("%TCP.flags%") == "SA":
-                            addit = False
-                    if addit:
-                        scanned_hosts[host]["parentIP"] = list(dict.fromkeys(hops))
-                        allhops.append(list(dict.fromkeys(hops)))
-                    print(scanned_hosts[host]["parentIP"])
-                    print(f"added path: {hops}")
-
-
-        # prevhop = [
-        #     keyb
-        #     for trace in result.get_trace().values()
-        #     for sub_trace in trace.values()
-        #     for keyb in sub_trace if type(keyb) != bool
-        #     ]
-        # #pprint.pprint(prevhop)
-        # scanned_hosts[host]["parentIP"] = prevhop
 
 def get_random_hex_color():
     color = list(np.random.choice(range(40,225),size=3))
@@ -105,20 +70,16 @@ def get_random_hex_color():
     
 
 def create_network_graph(scanned_hosts, filename="all"):
-    graph = pgv.AGraph(overlap=False, splines="curved", directed=True, rankdir="LR", strict=False)
-    n = 0
+    graph = pgv.AGraph(overlap=False, splines="curved", directed=True, rankdir="TB", strict=False, beautify=True)
+   
 
     for host, data in scanned_hosts.items():
-        parent_node = list(data["parentIP"])
+        parent_node = data["parentIP"]
         maxHops = len(data["parentIP"])
-        #print(f"The MAxIMUM VALUE IS AJSDLKJASLFJDSALJF LAK::::::::::: {maxHops} for the host {host}")
-        
 
+        formatedPorts = f"<BR /> {[ p + '<BR />' for p in data['theports']]}"
+        graph.add_node(host, label=f"<IP: {host} \n Ports: {formatedPorts}>", shape='rectangle', rank=f"{host[:host.rfind('.')]}")
 
-        formatedPorts = { "<BR />" +p + ": " + v for p,v in data['theports']} 
-        graph.add_node(host, label=f"<IP: {host} \n Ports: {formatedPorts}>", shape='rectangle')
-        #graph.add_path(parent_node)
-        #graph.add_edges_from(edges, color="red", dir="forward", arrowType="normal")lastHop[:lastHop.rfind(".")] 
         nlist = parent_node
         path_color = get_random_hex_color()
         if len(nlist) > 1:
@@ -135,42 +96,9 @@ def create_network_graph(scanned_hosts, filename="all"):
                 else:
                     if graph.has_edge(fromv, tov):
                         graph.remove_edges_from(graph.in_edges(tov))
-                        graph.add_edge(fromv, tov, key=f"{fromv}_{tov}", penwidth="3", color=f"{path_color}")
-                # graph.remove_edges_from(graph.in_edges("172.16.30.1"))   
-                # if len(graph.edges(((fromv, tov, f"{fromv}{tov}{len(nlist)}")))) > 5:
-                #     print("REMoVing AEJALKDFJALSKJFLAK WEJFEDGE EDG EEDGEEDGDEGEGEGEGEGED")
-                #     try:
-                #         graph.remove_edge((f"{fromv}{tov}{host}{len(nlist)}"))
-                #     finally:
-                #         if len(graph.edges((fromv, tov, f"{fromv}{tov}{host}{len(nlist)}a"))) < 1:
-                #             graph.add_edge(fromv, tov, f"{fromv}{tov}{host}{len(nlist)}a", color="red", penwidth="3") 
-                    # else:
-                    #     graph.remove_edges_from((fromv, tov, f"{host}a"))
-                    #     graph.add_edge(fromv, tov, f"{host}a", color="red", penwidth="3")
-                        
-                
+                        graph.add_edge(fromv, tov, key=f"{fromv}_{tov}", penwidth="4", color="blue")
 
-
-                #print(f"NUMBER OF EDGES GOING TO {fromv} to {tov} is {len(graph.edges((fromv, tov)))} !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
                 fromv = tov
-    theset = {}
-    for node in graph.nodes():
-        print(len(graph.in_edges(node,keys=True)))
-        # if len(graph.in_edges(node)) > 6:
-            # graph.remove_edges_from(graph.in_edges(node))
-        # for edge in graph.in_edges(node):
-        #     # theset[host]= edge
-        #     print(len(edge))
-
-        #     print("ASDFJADSKLFJADSLFKJZSDLKFJASDLKFJASDLKFJASDLKFJASDLKFJASDLKFJASDLKFJASDLKFJASDLKJFASDLKFASDLKJFASDLKJASDLKJFASDLKJ")
-            # graph.delete_edge(edge, key=host)
-    # pprint.pprint(sorted(theset))
-        
-    # graph.add_edges_from(theset, color=f"{path_color}")
-    # graph.remove_edges_from(graph.in_edges("172.16.30.1"))            
-    print("donewiththathost")
-
-
     graph.layout("neato")
     graph.draw(f"graph_{filename}.svg")
 
