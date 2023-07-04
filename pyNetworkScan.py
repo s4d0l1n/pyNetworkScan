@@ -68,7 +68,30 @@ def get_random_hex_color():
     color = list(np.random.choice(range(40,225),size=3))
     return '#{:02x}{:02x}{:02x}'.format(color[0], color[1], color[2])
     
-    
+def gen_ip_list(ip_range_str):
+    ip_list = []
+
+    octets = ip_range_str.split(".")
+    for o in octets:
+        if "," in o:
+            comma_separated_ranges = o.split(",")
+            values = []
+            for r in comma_separated_ranges:
+                if "-" in r:
+                    start, end = map(int, r.split("-"))
+                    values.extend(list(range(start, end + 1)))
+                else:
+                    values.append(int(r))
+            ip_list.append(values)
+        elif "-" in o:
+            start, end = map(int, o.split("-"))
+            ip_list.append(list(range(start, end + 1)))
+        else:
+            ip_list.append([int(o)])
+
+    return ['.'.join(map(str, ip)) for ip in itertools.product(*ip_list)]
+
+
 
 def create_network_graph(scanned_hosts, filename="all"):
     graph = pgv.AGraph(overlap=False, splines="ortho", directed=True, rankdir="TB", strict=False)
