@@ -85,7 +85,7 @@ def perform_traceroute(scanned_hosts):
 
                 scanned_hosts[str(x[0])]["parentIP"] = x[1]
                 trace_pbar.update()
-    pprint.pprint(scanned_hosts)
+    
     return scanned_hosts
 
 def get_random_hex_color():
