@@ -238,7 +238,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Network Tracer and Port Scanner")
     parser.add_argument("-x", "--xml", type=str, help="Specify the Nmap generated XML input file ie: outputscan.xml. This will use the values from this file skipping a manual scan.")
     parser.add_argument("-i", "--ip_range", type=str, help="Specify the IP range for scan. You can use , or - to specify the range ie: 192.168.0-5.10-20,50-100")
-    parser.add_argument("-p", "--num_ports", type=int, default=1000,choices=range(1,8366), help="Specify the top number of common ports (1 to 8366) to scan when doing a manual scan, default: 1000")
+    parser.add_argument("-p", "--num_ports", type=int, default=1000, help="Specify the top number of common ports (1 to 8366) to scan when doing a manual scan, default: 1000")
     parser.add_argument("-o", "--output", default="output_scan.json" , type=str, help="save network map to json file, default: output_scan.json")
 
     args = parser.parse_args()
