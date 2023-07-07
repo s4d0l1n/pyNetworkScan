@@ -159,7 +159,7 @@ def create_network_graph(scanned_hosts, filename="all"):
 
 def is_up(ip):
     icmp = IP(dst=ip)/ICMP()
-    resp = sr1(icmp, timeout=.5, verbose=0)
+    resp = sr1(icmp, timeout=.7, verbose=0)
     
     if resp == None:
         return (ip, False)
