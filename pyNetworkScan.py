@@ -10,6 +10,9 @@ from multiprocessing.pool import Pool
 import multiprocessing
 from tqdm import tqdm
 from functools import partial
+import contextlib
+import os
+import argparse
 
 thisip=""
 allhops = []
@@ -56,7 +59,11 @@ def get_open_ports(ports):
 def tracert(host):
     ans, unans = sr(IP(dst=host, ttl=(1,6))/ICMP(), timeout=2, verbose=0, retry=2)
     hops=[]
-    ans.summary( lambda s, r : hops.append(str(r.sprintf("%IP.src%"))))
+    
+    with open(os.devnull, 'w') as devnull:
+        with contextlib.redirect_stdout(devnull):
+            ans.summary(lambda s, r : hops.append(str(r.sprintf("%IP.src%"))))
+    
     hops = list(dict.fromkeys(hops))
     hops.insert(0, thisip)
     hops.insert(-1, host[:host.rfind(".")]+ ".0")
@@ -224,22 +231,29 @@ def load_ports_file(infile="theports.txt", top_ports=1000): #1st
 
 
 if __name__ == '__main__':
-    scanned_hosts = dict()
-    
-    
-    scan_dict = read_xml('outputscan.xml')
-    thisip= getMyIP()
-    ##scanned_hosts = get_xml_scanned_hosts(scan_dict)
-    liveHosts = get_live_hosts(gen_ip_list("192.168.0-50.100-150"))
-    scanned_hosts = get_scan_hosts_ports(liveHosts, 200)
-    
-    uniqueNets = set([ips[:ips.rfind(".")] for ips in scanned_hosts])
-    perform_traceroute(scanned_hosts)
-    for un in uniqueNets:
-        #print (un)
-        create_network_graph({k:v for (k,v) in scanned_hosts.items() if un in k},un)
-    # 192.168.0-50.2-150
-    
+    parser = argparse.ArgumentParser(description="Network Tracer and Port Scanner")
+    parser.add_argument("--xml", type=str, help="Specify the Nmap generated XML file ie: outputscan.xml")
+    parser.add_argument("--ip_range", type=str, help="Specify the IP range for gen_ip_list ie: 192.168.0-5.10-20,50-100")
+    parser.add_argument("--num_ports", type=int, default=1000, help="Specify the top number of common ports to scan default: 1000")
 
+    args = parser.parse_args()
+
+    scanned_hosts = dict()
+
+    if args.xml:
+        scan_dict = read_xml(args.xml)
+        thisip= getMyIP()
+        scanned_hosts = get_xml_scanned_hosts(scan_dict)
+        
+    elif args.ip_range:
+        thisip= getMyIP()
+        liveHosts = get_live_hosts(gen_ip_list(args.ip_range))
+        scanned_hosts = get_scan_hosts_ports(liveHosts, args.num_ports)
+
+    
+    perform_traceroute(scanned_hosts)
+    
+    
     create_network_graph(scanned_hosts)
+
     
