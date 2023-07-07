@@ -262,14 +262,10 @@ if __name__ == '__main__':
         with open(str(args.output), 'w') as fout:
             json.dump(scanned_hosts, fout, indent=2)    
             
-    uniqueNets = set([ips[:ips.rfind(".")] for ips in scanned_hosts])
+
     scanned_hosts = create_network_graph(scanned_hosts)
     
-    
-    for un in uniqueNets:
-       
-        create_network_graph({k:v for (k,v) in scanned_hosts.items() if un in k},un)
-    
+
 
 
       
