@@ -13,6 +13,7 @@ from functools import partial
 import contextlib
 import os
 import argparse
+import json
 
 thisip=""
 allhops = []
@@ -56,6 +57,9 @@ def get_open_ports(ports):
         open_ports[ports['@portid']] = ports['service']['@name']
 
     return open_ports
+
+
+
 def tracert(host):
     ans, unans = sr(IP(dst=host, ttl=(1,6))/ICMP(), timeout=2, verbose=0, retry=2)
     hops=[]
@@ -75,17 +79,14 @@ def perform_traceroute(scanned_hosts):
    
     with multiprocessing.Pool(processes=4) as p:
         with tqdm(total=len(scanned_hosts), unit="Traces") as trace_pbar:
+            trace_pbar.set_description("Performing trace route: ") 
             for x in p.imap_unordered(tracert, scanned_hosts.keys()):
                 # print(f'{x[0]} {x[1]}')
 
                 scanned_hosts[str(x[0])]["parentIP"] = x[1]
                 trace_pbar.update()
-            
-
-
-        
-    
-        
+    pprint.pprint(scanned_hosts)
+    return scanned_hosts
 
 def get_random_hex_color():
     color = list(np.random.choice(range(40,225),size=3))
@@ -122,7 +123,7 @@ def create_network_graph(scanned_hosts, filename="all"):
 
     for host, data in scanned_hosts.items():
         parent_node = data["parentIP"]
-        maxHops = len(data["parentIP"])
+        
 
         formatedPorts = {'<BR />' +  str(key) + ':' + str(value) for key, value in data['theports'].items()} 
         # 
@@ -153,6 +154,8 @@ def create_network_graph(scanned_hosts, filename="all"):
                 fromv = tov
     graph.layout("dot")
     graph.draw(f"graph_{filename}.svg")
+    return scanned_hosts
+    
 
 def is_up(ip):
     icmp = IP(dst=ip)/ICMP()
@@ -170,8 +173,9 @@ def get_live_hosts(ipList): #zero
         with tqdm(total=len(ipList), unit="Hosts") as pbar:
             for x in p.imap_unordered(is_up, ipList):
                 if x[1] == True:
-                    pbar.set_description(f"Found {len(ips)} hosts.")
+                    
                     ips.add(x[0])
+                    pbar.set_description(f"Found {len(ips)} hosts.")
                 pbar.update()
     p.close()
     p.join()
@@ -232,9 +236,10 @@ def load_ports_file(infile="theports.txt", top_ports=1000): #1st
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Network Tracer and Port Scanner")
-    parser.add_argument("--xml", type=str, help="Specify the Nmap generated XML file ie: outputscan.xml")
-    parser.add_argument("--ip_range", type=str, help="Specify the IP range for gen_ip_list ie: 192.168.0-5.10-20,50-100")
-    parser.add_argument("--num_ports", type=int, default=1000, help="Specify the top number of common ports to scan default: 1000")
+    parser.add_argument("-x", "--xml", type=str, help="Specify the Nmap generated XML input file ie: outputscan.xml. This will use the values from this file skipping a manual scan.")
+    parser.add_argument("-i", "--ip_range", type=str, help="Specify the IP range for scan. You can use , or - to specify the range ie: 192.168.0-5.10-20,50-100")
+    parser.add_argument("-p", "--num_ports", type=int, default=1000,choices=range(1,8366), help="Specify the top number of common ports (1 to 8366) to scan when doing a manual scan, default: 1000")
+    parser.add_argument("-o", "--output", default="output_scan.json" , type=str, help="save network map to json file, default: output_scan.json")
 
     args = parser.parse_args()
 
@@ -251,9 +256,20 @@ if __name__ == '__main__':
         scanned_hosts = get_scan_hosts_ports(liveHosts, args.num_ports)
 
     
-    perform_traceroute(scanned_hosts)
+    scanned_hosts = perform_traceroute(scanned_hosts)
+    if args.output:
+        print(f"saving to {args.output}")
+        with open(str(args.output), 'w') as fout:
+            json.dump(scanned_hosts, fout, indent=2)    
+            
+    uniqueNets = set([ips[:ips.rfind(".")] for ips in scanned_hosts])
+    scanned_hosts = create_network_graph(scanned_hosts)
     
     
-    create_network_graph(scanned_hosts)
+    for un in uniqueNets:
+        print (un)
+        create_network_graph({k:v for (k,v) in scanned_hosts.items() if un in k},un)
+    
 
-    
+
+      
