@@ -267,7 +267,7 @@ if __name__ == '__main__':
     
     
     for un in uniqueNets:
-        print (un)
+       
         create_network_graph({k:v for (k,v) in scanned_hosts.items() if un in k},un)
     
 
