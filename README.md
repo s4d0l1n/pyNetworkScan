@@ -3,7 +3,7 @@
 you need the theports.txt file if you are going to do a scan with the pyNetworkScan instead using a nmap xml file. 
 
 
-sudo python pyNetworkScan.py
+                        sudo python pyNetworkScan.py
 
 
 usage: pyNetworkScan.py [-h] [-x XML] [-i IP_RANGE] [-p NUM_PORTS] [-o OUTPUT]
