@@ -20,6 +20,8 @@ Please note: this tool should only be used in an environment where you have perm
 
 ## Usage
 
+please note: you need theports.txt file and run the program with sudo. 
+
 ```
 python main.py [-x XML_FILE] [-i IP_RANGE] [-p NUM_PORTS] [-o OUTPUT_FILE]
 ```
