@@ -265,7 +265,7 @@ if __name__ == '__main__':
     SCAN_TO = args.scan_timeout
     SCAN_PROC = args.scan_procs
     PORT_TO = args.port_timeout
-    PORT_PROC = args.procs
+    PORT_PROC = args.port_procs
     TRACE_TO = args.trace_timeout
     TRACE_PROC = args.trace_procs
     TRACE_HOPS = args.trace_hops
