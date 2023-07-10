@@ -185,7 +185,7 @@ def check_port(hostandport):
 
     packet = IP(dst=str(hostandport[0]))/TCP(dport=int(hostandport[1]))
     
-    resp = sr1(packet, verbose=0, timeout=.5)
+    resp = sr1(packet, verbose=0, timeout=4)
     if resp is not None and resp.haslayer(TCP) and resp.getlayer(TCP).flags==0x12:
         return (hostandport[0], hostandport[1], True)
     else:
@@ -205,7 +205,7 @@ def get_scan_hosts_ports(liveHostList, top_ports=1000):
             hostports.append((h,p))
     
     openPorts = {}
-    with multiprocessing.Pool(processes=100) as p:
+    with multiprocessing.Pool(processes=25) as p:
         with tqdm(total=len(hostports), unit="Ports", leave=True, position=0) as host_pbar:
             host_pbar.set_description("Ports scan: ")
             for x in p.imap_unordered(check_port, hostports):
