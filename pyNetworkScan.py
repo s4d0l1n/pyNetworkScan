@@ -19,7 +19,13 @@ thisip=""
 allhops = []
 hostsAndHops = dict()
 
-
+SCAN_TO = 2
+SCAN_PROC = 25
+PORT_TO = 2
+PORT_PROC = 100
+TRACE_TO = 4
+TRACE_PROC = 4
+TRACE_HOPS = 6
 
 
 def read_xml(file_name):
@@ -61,7 +67,7 @@ def get_open_ports(ports):
 
 
 def tracert(host):
-    ans, unans = sr(IP(dst=host, ttl=(1,6))/ICMP(), timeout=4, verbose=0, retry=4)
+    ans, unans = sr(IP(dst=host, ttl=(1,TRACE_HOPS))/ICMP(), timeout=TRACE_TO, verbose=0, retry=4)
     hops=[]
     
     with open(os.devnull, 'w') as devnull:
@@ -77,7 +83,7 @@ def tracert(host):
 
 def perform_traceroute(scanned_hosts):
    
-    with multiprocessing.Pool(processes=4) as p:
+    with multiprocessing.Pool(processes=TRACE_PROC) as p:
         with tqdm(total=len(scanned_hosts), unit="Traces") as trace_pbar:
             trace_pbar.set_description("Performing trace route: ") 
             for x in p.imap_unordered(tracert, scanned_hosts.keys()):
@@ -159,7 +165,7 @@ def create_network_graph(scanned_hosts, filename="all"):
 
 def is_up(ip):
     icmp = IP(dst=ip)/ICMP()
-    resp = sr1(icmp, timeout=2, verbose=0)
+    resp = sr1(icmp, timeout=SCAN_TO, verbose=0)
     
     if resp == None:
         return (ip, False)
@@ -169,7 +175,7 @@ def is_up(ip):
 
 def get_live_hosts(ipList): #zero
     ips = set()
-    with multiprocessing.Pool(processes=25) as p:
+    with multiprocessing.Pool(processes=SCAN_PROC) as p:
         with tqdm(total=len(ipList), unit="Hosts") as pbar:
             for x in p.imap_unordered(is_up, ipList):
                 if x[1] == True:
@@ -185,7 +191,7 @@ def check_port(hostandport):
 
     packet = IP(dst=str(hostandport[0]))/TCP(dport=int(hostandport[1]))
     
-    resp = sr1(packet, verbose=0, timeout=2)
+    resp = sr1(packet, verbose=0, timeout=PORT_TO)
     if resp is not None and resp.haslayer(TCP) and resp.getlayer(TCP).flags==0x12:
         return (hostandport[0], hostandport[1], True)
     else:
@@ -206,7 +212,7 @@ def get_scan_hosts_ports(liveHostList, top_ports=1000):
             hostports.append((h,p))
     
     openPorts = {}
-    with multiprocessing.Pool(processes=100) as p:
+    with multiprocessing.Pool(processes=PORT_PROC) as p:
         with tqdm(total=len(hostports), unit="Ports", leave=True, position=0) as host_pbar:
             host_pbar.set_description("Ports scan: ")
             for x in p.imap_unordered(check_port, hostports):
@@ -244,6 +250,13 @@ if __name__ == '__main__':
     parser.add_argument("-i", "--ip_range", type=str, help="Specify the IP range for scan. You can use , or - to specify the range ie: 192.168.0-5.10-20,50-100")
     parser.add_argument("-p", "--num_ports", type=int, default=1000, help="Specify the top number of common ports (1 to 8366) to scan when doing a manual scan, default: 1000")
     parser.add_argument("-o", "--output", default="output_scan.json" , type=str, help="save network map to json file, default: output_scan.json")
+    parser.add_argument("-st", "--scan_timeout", type=int, default=2, help="set the timeout for the network scan before giving up and going to the next one")
+    parser.add_argument("-sp", "--scan_procs", type=int, default=25, help="set the number parallel tasks to scan for hosts")
+    parser.add_argument("-pt", "--port_timeout", type=int, default=2, help="set the timeout for the port scan before giving up and going to the next one")
+    parser.add_argument("-pp", "--port_procs", type=int, default=100, help="set the number parallel tasks to scan for hosts")
+    parser.add_argument("-tt", "--trace_timeout", type=int, default=4, help="set the timeout when performing a trace route before giving up and going to the next one")
+    parser.add_argument("-tp", "--trace_procs", type=int, default=4, help="set the number parallel tasks to scan for trace routing")
+    parser.add_argument("-th", "--trace_hops", type=int, default=6, help="set the number of hops for the trace route")
 
     args = parser.parse_args()
 
