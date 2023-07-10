@@ -61,7 +61,7 @@ def get_open_ports(ports):
 
 
 def tracert(host):
-    ans, unans = sr(IP(dst=host, ttl=(1,6))/ICMP(), timeout=2, verbose=0, retry=2)
+    ans, unans = sr(IP(dst=host, ttl=(1,6))/ICMP(), timeout=4, verbose=0, retry=4)
     hops=[]
     
     with open(os.devnull, 'w') as devnull:
@@ -159,7 +159,7 @@ def create_network_graph(scanned_hosts, filename="all"):
 
 def is_up(ip):
     icmp = IP(dst=ip)/ICMP()
-    resp = sr1(icmp, timeout=.7, verbose=0)
+    resp = sr1(icmp, timeout=2, verbose=0)
     
     if resp == None:
         return (ip, False)
@@ -169,7 +169,7 @@ def is_up(ip):
 
 def get_live_hosts(ipList): #zero
     ips = set()
-    with multiprocessing.Pool(processes=100) as p:
+    with multiprocessing.Pool(processes=25) as p:
         with tqdm(total=len(ipList), unit="Hosts") as pbar:
             for x in p.imap_unordered(is_up, ipList):
                 if x[1] == True:
@@ -185,7 +185,7 @@ def check_port(hostandport):
 
     packet = IP(dst=str(hostandport[0]))/TCP(dport=int(hostandport[1]))
     
-    resp = sr1(packet, verbose=0, timeout=4)
+    resp = sr1(packet, verbose=0, timeout=2)
     if resp is not None and resp.haslayer(TCP) and resp.getlayer(TCP).flags==0x12:
         return (hostandport[0], hostandport[1], True)
     else:
@@ -196,6 +196,7 @@ def get_scan_hosts_ports(liveHostList, top_ports=1000):
     
     for lh in liveHostList:
         scanned_hosts[str(lh)] = {"theports": {}, "parentIP": []}
+        
 
     ports = load_ports_file("theports.txt", top_ports)
     # pprint.pprint(ports)
@@ -205,11 +206,14 @@ def get_scan_hosts_ports(liveHostList, top_ports=1000):
             hostports.append((h,p))
     
     openPorts = {}
-    with multiprocessing.Pool(processes=25) as p:
+    with multiprocessing.Pool(processes=100) as p:
         with tqdm(total=len(hostports), unit="Ports", leave=True, position=0) as host_pbar:
             host_pbar.set_description("Ports scan: ")
             for x in p.imap_unordered(check_port, hostports):
+                
                 if x[2]==True:
+                    
+                    
 
                     scanned_hosts[f'{x[0]}']["theports"][str(x[1])]=ports[f'{x[1]}']
 
