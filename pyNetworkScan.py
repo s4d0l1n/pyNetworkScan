@@ -261,6 +261,14 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     scanned_hosts = dict()
+    
+    SCAN_TO = args.scan_timeout
+    SCAN_PROC = args.scan_procs
+    PORT_TO = args.port_timeout
+    PORT_PROC = args.procs
+    TRACE_TO = args.trace_timeout
+    TRACE_PROC = args.trace_procs
+    TRACE_HOPS = args.trace_hops
 
     if args.xml:
         scan_dict = read_xml(args.xml)
